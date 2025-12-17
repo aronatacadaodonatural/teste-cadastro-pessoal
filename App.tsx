@@ -4,6 +4,7 @@ import { Input } from './components/Input';
 import { Button } from './components/Button';
 import { Logo } from './components/Logo';
 import { SettingsModal } from './components/SettingsModal';
+import { DeleteConfirmationModal } from './components/DeleteConfirmationModal';
 import { formatCPF, formatPhone, generateId } from './utils/formatters';
 import { Contact, InputEvent, FormEvent } from './types';
 
@@ -17,6 +18,9 @@ function App() {
   const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('sheetUrl') || '');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State for delete confirmation
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -106,10 +110,18 @@ function App() {
     }
   };
 
-  // Handle contact deletion
-  const handleDelete = useCallback((id: string) => {
-    setContacts(prev => prev.filter(contact => contact.id !== id));
-  }, []);
+  // Trigger the delete confirmation modal
+  const handleRequestDelete = (contact: Contact) => {
+    setContactToDelete(contact);
+  };
+
+  // Execute the actual deletion
+  const handleConfirmDelete = useCallback(() => {
+    if (contactToDelete) {
+      setContacts(prev => prev.filter(contact => contact.id !== contactToDelete.id));
+      setContactToDelete(null);
+    }
+  }, [contactToDelete]);
 
   // Filter contacts based on search
   const filteredContacts = contacts.filter(contact => 
@@ -125,6 +137,13 @@ function App() {
         onClose={() => setIsSettingsOpen(false)} 
         currentUrl={sheetUrl}
         onSave={handleSaveSettings}
+      />
+
+      <DeleteConfirmationModal 
+        isOpen={!!contactToDelete}
+        onClose={() => setContactToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        contactName={contactToDelete?.name || ''}
       />
 
       <div className="max-w-4xl mx-auto space-y-8">
@@ -287,7 +306,7 @@ function App() {
                     
                     <Button 
                       variant="danger" 
-                      onClick={() => handleDelete(contact.id)}
+                      onClick={() => handleRequestDelete(contact)}
                       className="w-full sm:w-auto opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 text-red-600 hover:bg-red-100 border-red-100"
                     >
                       <Trash2 size={16} />
